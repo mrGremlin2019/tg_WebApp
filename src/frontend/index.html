@@ -1,0 +1,56 @@
+import axios, { AxiosResponse, AxiosError } from 'axios';
+
+const app = document.getElementById('app');
+
+if (app) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('user_id');
+
+    if (!userId) {
+        // Показываем форму ввода даты рождения
+        app.innerHTML = `
+            <h1>Введите дату рождения</h1>
+            <form id="birthdayForm">
+                <input type="date" id="birthDate" required>
+                <button type="submit">Отправить</button>
+            </form>
+        `;
+
+        const form = document.getElementById('birthdayForm') as HTMLFormElement;
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const birthDate = (document.getElementById('birthDate') as HTMLInputElement).value;
+
+            try {
+                const response = await axios.post(`/user/${userId}`, { birth_date: birthDate });
+                if (response.data.status === 'ok') {
+                    window.location.href = `/?user_id=${userId}`;
+                }
+            } catch (error) {
+                console.error('Error saving birth date:', error);
+            }
+        });
+    } else {
+        // Показываем данные пользователя
+        axios.get(`/user/${userId}`)
+            .then((response: AxiosResponse) => {
+                const { username, birth_date, time_left } = response.data;
+                app.innerHTML = `
+                    <h1>Данные пользователя</h1>
+                    <p>Имя: ${username}</p>
+                    <p>Дата рождения: ${birth_date}</p>
+                    <p>До дня рождения осталось: ${time_left}</p>
+                    <button id="shareButton">Поделиться</button>
+                `;
+
+                const shareButton = document.getElementById('shareButton') as HTMLButtonElement;
+                shareButton.addEventListener('click', () => {
+                    const shareUrl = `${window.location.origin}/share/${userId}`;
+                    alert(`Ссылка для общего доступа: ${shareUrl}`);
+                });
+            })
+            .catch((error: AxiosError) => {
+                console.error('Error fetching user data:', error);
+            });
+    }
+}
